@@ -133,4 +133,20 @@ async function getSalesByStyle(startDate, endDate) {
   return salesByStyle; // Map<style_code, units sold in range>
 }
 
-module.exports = { configured, getStockByStyle, getSalesByStyle };
+// Live category per style, straight from ApparelMagic's own `products.category`
+// field -- the same field the demand-planning app (V2 branch) already treats
+// as authoritative. This is a real structured field, not name-parsing, so it
+// doesn't conflict with "never derive category from naming": that rule is
+// specifically about Meta campaign/ad set names, which have no such field.
+async function getStyleCategories() {
+  const rows = await fetchAllPages('products', {});
+  const map = new Map();
+  for (const row of rows) {
+    const style = (row.style_number || '').trim();
+    const category = (row.category || '').trim().toUpperCase();
+    if (style && category) map.set(style, category);
+  }
+  return map; // Map<style_code, category name>
+}
+
+module.exports = { configured, getStockByStyle, getSalesByStyle, getStyleCategories };
