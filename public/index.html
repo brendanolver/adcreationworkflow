@@ -156,6 +156,7 @@
   <nav>
     <button class="active" data-view="dashboard">Category Spend</button>
     <button data-view="mapping">Category Mapping</button>
+    <button data-view="products">Style Spend</button>
     <button data-view="promotions">Promotions</button>
   </nav>
 </header>
@@ -238,6 +239,67 @@
       <table>
         <thead><tr><th>Category</th><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead>
         <tbody id="mapping-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="view-products" class="view">
+    <div class="card">
+      <div class="section-title">Meta campaign / ad set → Product</div>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px;">
+        Colours are condensed into one product automatically (ApparelMagic's own product name, colour stripped).
+        Map the campaigns/ad sets that promote a specific product so you can compare spend across products —
+        e.g. Halo Baggy Trackpants vs Hoxton V2 Tech Trackpants.
+      </p>
+      <form class="inline" id="product-mapping-form">
+        <div class="field">
+          <label for="pm-product">Product</label>
+          <input type="text" id="pm-product" list="product-name-options" placeholder="search product name..." required>
+          <datalist id="product-name-options"></datalist>
+        </div>
+        <div class="field">
+          <label for="pm-type">Type</label>
+          <select id="pm-type">
+            <option value="meta_campaign">Meta campaign ID</option>
+            <option value="meta_adset">Meta ad set ID</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pm-entity">ID</label>
+          <input type="text" id="pm-entity" placeholder="Meta ID" required>
+        </div>
+        <div class="field">
+          <label for="pm-label">Label (optional)</label>
+          <input type="text" id="pm-label" placeholder="for your own reference">
+        </div>
+        <button class="primary" type="submit">Add mapping</button>
+      </form>
+      <table>
+        <thead><tr><th>Product</th><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead>
+        <tbody id="product-mapping-rows"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-title">Spend by product</div>
+      <form class="inline" onsubmit="return false;">
+        <div class="field">
+          <label for="ps-search">Search products</label>
+          <input type="text" id="ps-search" placeholder="e.g. trackpants" oninput="renderProductSpendRows()">
+        </div>
+        <div class="field">
+          <label for="ps-start">From</label>
+          <input type="date" id="ps-start">
+        </div>
+        <div class="field">
+          <label for="ps-end">To</label>
+          <input type="date" id="ps-end">
+        </div>
+        <button class="primary" id="ps-reload">Refresh</button>
+      </form>
+      <div id="ps-warnings"></div>
+      <table>
+        <thead><tr><th>Product</th><th>Spend</th></tr></thead>
+        <tbody id="product-spend-rows"></tbody>
       </table>
     </div>
   </section>
@@ -442,6 +504,75 @@ $('#mapping-form').addEventListener('submit', async (e) => {
   await loadMappings();
 });
 
+// ---------- Style Spend (product-level) ----------
+async function loadProductNameOptions() {
+  const names = await api('/api/mappings/products');
+  $('#product-name-options').innerHTML = names.map((n) => `<option value="${esc(n)}"></option>`).join('');
+}
+
+async function loadProductMappings() {
+  const rows = await api('/api/mappings/products/mappings');
+  const typeLabel = { meta_campaign: 'Meta campaign', meta_adset: 'Meta ad set' };
+  $('#product-mapping-rows').innerHTML = rows.map((m) => `
+    <tr>
+      <td>${esc(m.product_name)}</td>
+      <td>${typeLabel[m.entity_type]}</td>
+      <td>${esc(m.entity_id)}</td>
+      <td class="muted">${esc(m.label || '')}</td>
+      <td><button class="ghost" data-del-pm="${m.id}">Remove</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="muted">No product mappings yet.</td></tr>';
+
+  $$('[data-del-pm]').forEach((btn) => btn.addEventListener('click', async () => {
+    await api('/api/mappings/products/mappings/' + btn.dataset.delPm, { method: 'DELETE' });
+    await loadProductMappings();
+  }));
+}
+
+$('#product-mapping-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/mappings/products/mappings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_name: $('#pm-product').value,
+      entity_type: $('#pm-type').value,
+      entity_id: $('#pm-entity').value,
+      label: $('#pm-label').value,
+    }),
+  });
+  $('#pm-entity').value = '';
+  $('#pm-label').value = '';
+  await loadProductMappings();
+});
+
+let productSpendCache = [];
+
+async function loadProductSpend() {
+  const params = new URLSearchParams();
+  if ($('#ps-start').value) params.set('start', $('#ps-start').value);
+  if ($('#ps-end').value) params.set('end', $('#ps-end').value);
+  try {
+    const data = await api('/api/mappings/products/spend?' + params.toString());
+    productSpendCache = data.products;
+    $('#ps-warnings').innerHTML = '';
+  } catch (err) {
+    productSpendCache = [];
+    $('#ps-warnings').innerHTML = `<div class="warn-box">${esc(err.message)}</div>`;
+  }
+  renderProductSpendRows();
+}
+
+function renderProductSpendRows() {
+  const q = ($('#ps-search').value || '').trim().toLowerCase();
+  const filtered = q ? productSpendCache.filter((p) => p.product_name.toLowerCase().includes(q)) : productSpendCache;
+  $('#product-spend-rows').innerHTML = filtered.map((p) => `
+    <tr><td>${esc(p.product_name)}</td><td>${money(p.spend)}</td></tr>
+  `).join('') || '<tr><td colspan="2" class="muted">No mapped products with spend in this range.</td></tr>';
+}
+
+$('#ps-reload').addEventListener('click', loadProductSpend);
+
 // ---------- Promotions ----------
 async function loadPromotions() {
   const rows = await api('/api/promotions');
@@ -481,7 +612,14 @@ $('#promo-form').addEventListener('submit', async (e) => {
 (async function init() {
   try {
     await loadCategories();
-    await Promise.all([loadDashboard(), loadMappings(), loadPromotions()]);
+    await Promise.all([
+      loadDashboard(),
+      loadMappings(),
+      loadPromotions(),
+      loadProductNameOptions(),
+      loadProductMappings(),
+      loadProductSpend(),
+    ]);
   } catch (err) {
     console.error(err);
     $('#warnings').innerHTML = `<div class="warn-box">Couldn't load the app: ${esc(err.message)}</div>`;
