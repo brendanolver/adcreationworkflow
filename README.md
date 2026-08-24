@@ -23,6 +23,12 @@ full context; this README covers what's implemented and how to run it.
   selling before assuming it needs more budget.
 - Promotions calendar: a minimal manual entry point so "what's promoting this
   week" isn't left to memory.
+- Style Spend tab: product-level spend lookup, one level below category. Map
+  Meta campaigns/ad sets to a specific product (colours condensed
+  automatically -- ApparelMagic's own `description` field follows a
+  "PRODUCT NAME - COLOUR" convention, same split point already proven in the
+  demandplanning app), then search/filter spend per product to compare e.g.
+  Halo Baggy Trackpant vs Hoxton V2 Tech Trackpant.
 
 **Not built yet (do not build all five phases at once):** creative pipeline
 tracker (Phase 2), stock-gated shoot list (Phase 3), combined weekly view

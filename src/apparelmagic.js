@@ -156,20 +156,28 @@ async function getSalesByStyle(startDate, endDate) {
   return salesByStyle; // Map<style_code, units sold in range>
 }
 
-// Live category per style, straight from ApparelMagic's own `products.category`
-// field -- the same field the demand-planning app (V2 branch) already treats
-// as authoritative. This is a real structured field, not name-parsing, so it
-// doesn't conflict with "never derive category from naming": that rule is
-// specifically about Meta campaign/ad set names, which have no such field.
-async function getStyleCategories() {
+// Live category + product name per style, straight from ApparelMagic's own
+// `products` record. Category comes from the `category` field -- the same
+// field the demand-planning app (V2 branch) already treats as authoritative.
+// Product name comes from splitting `description` on its last " - ", the
+// same "PRODUCT NAME - COLOUR" convention (and exact split point) the
+// demand-planning app already uses to condense colour variants into one
+// product when grouping Shopify data. Neither is name-parsing of the kind
+// the brief warns against -- that rule is specifically about Meta campaign/
+// ad set names, which have no such structured fields to draw from.
+async function getStyleDetails() {
   const rows = await fetchAllPages('products', {});
   const map = new Map();
   for (const row of rows) {
     const style = (row.style_number || '').trim();
-    const category = (row.category || '').trim().toUpperCase();
-    if (style && category) map.set(style, category);
+    if (!style) continue;
+    const category = (row.category || '').trim().toUpperCase() || null;
+    const description = (row.description || '').trim();
+    const dashIdx = description.lastIndexOf(' - ');
+    const productName = (dashIdx >= 0 ? description.slice(0, dashIdx) : description).trim() || null;
+    map.set(style, { category, productName });
   }
-  return map; // Map<style_code, category name>
+  return map; // Map<style_code, { category, productName }>
 }
 
 // Exposed only for the /api/debug/am diagnostic route -- lets us see the
@@ -181,4 +189,4 @@ async function rawRequest(endpoint, params) {
   return result;
 }
 
-module.exports = { configured, getStockByStyle, getSalesByStyle, getStyleCategories, rawRequest };
+module.exports = { configured, getStockByStyle, getSalesByStyle, getStyleDetails, rawRequest };
