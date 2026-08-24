@@ -57,13 +57,16 @@ function amRequest(method, endpoint, params = {}, body = null) {
   });
 }
 
-async function fetchAllPages(endpoint, params, maxPages = 50) {
+async function fetchAllPages(endpoint, params, maxPages = 500) {
   const pageSize = 200;
   const rows = [];
   for (let page = 1; page <= maxPages; page++) {
+    // ApparelMagic's page param is `pagination[page_number]`, not
+    // `pagination[page]` -- the latter is silently ignored, so every
+    // "page" comes back as page 1 again with no error to signal it.
     const result = await amRequest('GET', endpoint, {
       'pagination[page_size]': pageSize,
-      'pagination[page]': page,
+      'pagination[page_number]': page,
       ...params,
     });
     if (result.status !== 200) {
@@ -71,7 +74,16 @@ async function fetchAllPages(endpoint, params, maxPages = 50) {
     }
     const batch = result.data?.response || [];
     rows.push(...batch);
-    if (batch.length < pageSize) break;
+
+    // Prefer the API's own total_pages when present -- more reliable than
+    // inferring "last page" from a short batch, and confirmed as the
+    // correct stop condition against this API elsewhere.
+    const totalPages = result.data?.meta?.pagination?.total_pages;
+    if (totalPages != null) {
+      if (page >= Number(totalPages)) break;
+    } else if (batch.length < pageSize) {
+      break;
+    }
   }
   return rows;
 }
