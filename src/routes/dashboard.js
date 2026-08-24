@@ -56,6 +56,7 @@ async function handleDashboard(req, res) {
   );
 
   const spendByCategory = new Map(); // category_id -> spend
+  const adsByCategory = new Map(); // category_id -> [{ ad_name, spend, source }]
   let unmappedSpend = 0;
   let autoMatchedByName = 0;
   if (meta.configured()) {
@@ -63,10 +64,12 @@ async function handleDashboard(req, res) {
       const adRows = await meta.getSpendByAd(start, end);
       for (const row of adRows) {
         let mapping = adsetToCategory.get(row.adset_id) || campaignToCategory.get(row.campaign_id);
+        let source = 'manual';
         if (!mapping) {
           const derived = deriveCategoryFromAdName(row.ad_name, categoryByName);
           if (derived) {
             mapping = derived;
+            source = 'auto';
             autoMatchedByName += row.spend;
           }
         }
@@ -75,6 +78,8 @@ async function handleDashboard(req, res) {
           continue;
         }
         spendByCategory.set(mapping.category_id, (spendByCategory.get(mapping.category_id) || 0) + row.spend);
+        if (!adsByCategory.has(mapping.category_id)) adsByCategory.set(mapping.category_id, []);
+        adsByCategory.get(mapping.category_id).push({ ad_name: row.ad_name, spend: round(row.spend), source });
       }
     } catch (err) {
       warnings.push(`Meta spend unavailable: ${err.message}`);
@@ -130,6 +135,7 @@ async function handleDashboard(req, res) {
     const spendShare = totalSpend > 0 ? spend / totalSpend : 0;
     const stockShare = totalStock > 0 ? stock / totalStock : 0;
     const salesShare = salesAvailable && totalSales > 0 ? sales / totalSales : null;
+    const ads = (adsByCategory.get(c.id) || []).sort((a, b) => b.spend - a.spend);
     return {
       category_id: c.id,
       category_name: c.name,
@@ -142,6 +148,8 @@ async function handleDashboard(req, res) {
       // Only flag categories that actually carry stock -- a zero-stock category
       // can't be "underweighted on spend relative to stock".
       flagged: totalStock > 0 && stock > 0 && spendShare < stockShare,
+      ad_count: ads.length,
+      ads,
     };
   });
 
@@ -153,6 +161,11 @@ async function handleDashboard(req, res) {
   res.json({
     range: { start, end },
     categories: categoryRows,
+    totals: {
+      spend: round(totalSpend),
+      stock_units: totalStock,
+      sales_units: salesAvailable ? totalSales : null,
+    },
     unmapped_spend: round(unmappedSpend),
     auto_matched_by_name_spend: round(autoMatchedByName),
     unmapped_stock_styles: unmappedStockStyles,
