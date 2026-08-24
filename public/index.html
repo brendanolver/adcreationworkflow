@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WNDRR Ads Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --muted: #898781;
+    --gridline: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --success-text: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted: #898781;
+      --gridline: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --good: #0ca30c;
+      --warning: #fab219;
+      --critical: #e66767;
+      --success-text: #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted: #898781;
+    --gridline: #2c2c2a;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #e66767;
+    --success-text: #0ca30c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  nav { display: flex; gap: 4px; }
+  nav button {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  nav button.active { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
+  main { padding: 24px 28px 60px; max-width: 1100px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat-tile { flex: 1; min-width: 150px; }
+  .stat-tile .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .stat-tile .value { font-size: 24px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  td { padding: 10px; border-bottom: 1px solid var(--gridline); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--gridline); position: relative; min-width: 60px; }
+  .bar-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; background: var(--series-1); }
+  .bar-fill.stock { background: var(--muted); opacity: 0.55; }
+  .flag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+    background: rgba(208,59,59,0.12); color: var(--critical);
+  }
+  .flag::before { content: "\26A0"; }
+  .muted { color: var(--muted); }
+  .warn-box {
+    background: rgba(250,178,25,0.12);
+    border: 1px solid rgba(250,178,25,0.35);
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  form.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+  form.inline .field { display: flex; flex-direction: column; gap: 4px; }
+  form.inline label { font-size: 11.5px; color: var(--muted); }
+  input, select {
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--page);
+    color: var(--text-primary);
+  }
+  button.primary {
+    background: var(--series-1);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  h2 { font-size: 14px; margin: 0 0 12px; }
+  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>WNDRR Ads Dashboard</h1>
+  <nav>
+    <button class="active" data-view="dashboard">Category Spend</button>
+    <button data-view="mapping">Category Mapping</button>
+    <button data-view="promotions">Promotions</button>
+  </nav>
+</header>
+<main>
+
+  <section id="view-dashboard" class="view active">
+    <form class="inline" onsubmit="return false;">
+      <div class="field">
+        <label for="start">From</label>
+        <input type="date" id="start">
+      </div>
+      <div class="field">
+        <label for="end">To</label>
+        <input type="date" id="end">
+      </div>
+      <button class="primary" id="reload">Refresh</button>
+    </form>
+    <div id="warnings"></div>
+    <div class="stat-row" id="stats"></div>
+    <div class="card">
+      <div class="section-title">Spend share vs. stock share vs. sales share, by category</div>
+      <table>
+        <thead>
+          <tr><th>Category</th><th>Spend</th><th>Spend share vs stock share</th><th>Sales share</th><th></th></tr>
+        </thead>
+        <tbody id="dashboard-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="view-mapping" class="view">
+    <div class="card">
+      <div class="section-title">Categories</div>
+      <form class="inline" id="category-form">
+        <div class="field">
+          <label for="cat-name">New category name</label>
+          <input type="text" id="cat-name" placeholder="e.g. Outerwear" required>
+        </div>
+        <button class="primary" type="submit">Add category</button>
+      </form>
+      <table>
+        <thead><tr><th>Name</th><th></th></tr></thead>
+        <tbody id="category-rows"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-title">Style / Meta campaign / Meta ad set → Category</div>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px;">
+        Category is never inferred from campaign or ad set names — every spend/stock/sales number on the
+        dashboard depends on this table being kept current.
+      </p>
+      <form class="inline" id="mapping-form">
+        <div class="field">
+          <label for="map-category">Category</label>
+          <select id="map-category" required></select>
+        </div>
+        <div class="field">
+          <label for="map-type">Type</label>
+          <select id="map-type">
+            <option value="style">Style (SKU/style code)</option>
+            <option value="meta_campaign">Meta campaign ID</option>
+            <option value="meta_adset">Meta ad set ID</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="map-entity">ID</label>
+          <input type="text" id="map-entity" placeholder="style code or Meta ID" required>
+        </div>
+        <div class="field">
+          <label for="map-label">Label (optional)</label>
+          <input type="text" id="map-label" placeholder="for your own reference">
+        </div>
+        <button class="primary" type="submit">Add mapping</button>
+      </form>
+      <table>
+        <thead><tr><th>Category</th><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead>
+        <tbody id="mapping-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="view-promotions" class="view">
+    <div class="card">
+      <div class="section-title">Promotions calendar</div>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px;">
+        What's promoting this week is one of the three inputs (with stock and sales) driving what gets shot —
+        log it here instead of leaving it to memory.
+      </p>
+      <form class="inline" id="promo-form">
+        <div class="field">
+          <label for="promo-title">Promotion</label>
+          <input type="text" id="promo-title" placeholder="e.g. 20% off knitwear" required>
+        </div>
+        <div class="field">
+          <label for="promo-category">Category (optional)</label>
+          <select id="promo-category"><option value="">—</option></select>
+        </div>
+        <div class="field">
+          <label for="promo-style">Style code (optional)</label>
+          <input type="text" id="promo-style">
+        </div>
+        <div class="field">
+          <label for="promo-start">Start</label>
+          <input type="date" id="promo-start" required>
+        </div>
+        <div class="field">
+          <label for="promo-end">End</label>
+          <input type="date" id="promo-end" required>
+        </div>
+        <button class="primary" type="submit">Add promotion</button>
+      </form>
+      <table>
+        <thead><tr><th>Promotion</th><th>Category</th><th>Style</th><th>Dates</th><th></th></tr></thead>
+        <tbody id="promo-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+<script>
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+document.querySelectorAll('nav button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+    btn.classList.add('active');
+    $('#view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+function pct(x) { return x === null || x === undefined ? '—' : (x * 100).toFixed(1) + '%'; }
+function money(x) { return '$' + Number(x).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok && res.status !== 204) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || ('Request failed: ' + res.status));
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ---------- Dashboard ----------
+async function loadDashboard() {
+  const params = new URLSearchParams();
+  if ($('#start').value) params.set('start', $('#start').value);
+  if ($('#end').value) params.set('end', $('#end').value);
+  const data = await api('/api/dashboard?' + params.toString());
+
+  $('#warnings').innerHTML = data.warnings.length
+    ? data.warnings.map((w) => `<div class="warn-box">${esc(w)}</div>`).join('')
+    : '';
+
+  const flaggedCount = data.categories.filter((c) => c.flagged).length;
+  $('#stats').innerHTML = `
+    <div class="stat-tile"><div class="label">Date range</div><div class="value" style="font-size:16px;">${esc(data.range.start)} – ${esc(data.range.end)}</div></div>
+    <div class="stat-tile"><div class="label">Flagged categories</div><div class="value" style="color:${flaggedCount ? 'var(--critical)' : 'inherit'}">${flaggedCount}</div></div>
+    <div class="stat-tile"><div class="label">Unmapped spend</div><div class="value" style="font-size:18px;">${money(data.unmapped_spend)}</div></div>
+    <div class="stat-tile"><div class="label">Unmapped stock styles</div><div class="value" style="font-size:18px;">${data.unmapped_stock_styles}</div></div>
+  `;
+
+  $('#dashboard-rows').innerHTML = data.categories.map((c) => `
+    <tr>
+      <td>${esc(c.category_name)}</td>
+      <td>${money(c.spend)}</td>
+      <td>
+        <div class="bar-wrap">
+          <div style="width:56px;font-size:12px;" class="muted">${pct(c.spend_share)} spend</div>
+          <div class="bar-track">
+            <div class="bar-fill stock" style="width:${Math.min(100, c.stock_share * 100)}%"></div>
+            <div class="bar-fill" style="width:${Math.min(100, c.spend_share * 100)}%;opacity:0.9;height:4px;top:2px;"></div>
+          </div>
+          <div style="width:56px;font-size:12px;" class="muted">${pct(c.stock_share)} stock</div>
+        </div>
+      </td>
+      <td>${pct(c.sales_share)}</td>
+      <td>${c.flagged ? '<span class="flag">Underspend vs stock</span>' : ''}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="muted">No categories yet — add one under Category Mapping.</td></tr>';
+}
+
+$('#reload').addEventListener('click', loadDashboard);
+
+// ---------- Category mapping ----------
+let categoriesCache = [];
+
+async function loadCategories() {
+  categoriesCache = await api('/api/categories');
+  $('#category-rows').innerHTML = categoriesCache.map((c) => `
+    <tr><td>${esc(c.name)}</td><td><button class="ghost" data-del-cat="${c.id}">Remove</button></td></tr>
+  `).join('') || '<tr><td colspan="2" class="muted">No categories yet.</td></tr>';
+
+  const opts = categoriesCache.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('#map-category').innerHTML = opts;
+  $('#promo-category').innerHTML = '<option value="">—</option>' + opts;
+
+  $$('[data-del-cat]').forEach((btn) => btn.addEventListener('click', async () => {
+    await api('/api/categories/' + btn.dataset.delCat, { method: 'DELETE' });
+    await loadCategories();
+    await loadMappings();
+  }));
+}
+
+async function loadMappings() {
+  const rows = await api('/api/mappings');
+  const typeLabel = { style: 'Style', meta_campaign: 'Meta campaign', meta_adset: 'Meta ad set' };
+  $('#mapping-rows').innerHTML = rows.map((m) => `
+    <tr>
+      <td>${esc(m.category_name)}</td>
+      <td>${typeLabel[m.entity_type]}</td>
+      <td>${esc(m.entity_id)}</td>
+      <td class="muted">${esc(m.label || '')}</td>
+      <td><button class="ghost" data-del-map="${m.id}">Remove</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="muted">No mappings yet.</td></tr>';
+
+  $$('[data-del-map]').forEach((btn) => btn.addEventListener('click', async () => {
+    await api('/api/mappings/' + btn.dataset.delMap, { method: 'DELETE' });
+    await loadMappings();
+  }));
+}
+
+$('#category-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: $('#cat-name').value }),
+  });
+  $('#cat-name').value = '';
+  await loadCategories();
+});
+
+$('#mapping-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/mappings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      category_id: Number($('#map-category').value),
+      entity_type: $('#map-type').value,
+      entity_id: $('#map-entity').value,
+      label: $('#map-label').value,
+    }),
+  });
+  $('#map-entity').value = '';
+  $('#map-label').value = '';
+  await loadMappings();
+});
+
+// ---------- Promotions ----------
+async function loadPromotions() {
+  const rows = await api('/api/promotions');
+  $('#promo-rows').innerHTML = rows.map((p) => `
+    <tr>
+      <td>${esc(p.title)}</td>
+      <td class="muted">${esc(p.category_name || '—')}</td>
+      <td class="muted">${esc(p.style_code || '—')}</td>
+      <td>${esc(p.start_date?.slice(0,10))} – ${esc(p.end_date?.slice(0,10))}</td>
+      <td><button class="ghost" data-del-promo="${p.id}">Remove</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="muted">No promotions logged yet.</td></tr>';
+
+  $$('[data-del-promo]').forEach((btn) => btn.addEventListener('click', async () => {
+    await api('/api/promotions/' + btn.dataset.delPromo, { method: 'DELETE' });
+    await loadPromotions();
+  }));
+}
+
+$('#promo-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/promotions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: $('#promo-title').value,
+      category_id: $('#promo-category').value || null,
+      style_code: $('#promo-style').value || null,
+      start_date: $('#promo-start').value,
+      end_date: $('#promo-end').value,
+    }),
+  });
+  e.target.reset();
+  await loadPromotions();
+});
+
+(async function init() {
+  await loadCategories();
+  await Promise.all([loadDashboard(), loadMappings(), loadPromotions()]);
+})();
+</script>
+</body>
+</html>

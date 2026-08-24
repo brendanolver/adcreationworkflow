@@ -1,0 +1,14 @@
+{
+  "name": "wndrr-ads-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WNDRR Meta Ads Creative & Spend Dashboard",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node src/migrate.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pg": "^8.13.0"
+  }
+}
