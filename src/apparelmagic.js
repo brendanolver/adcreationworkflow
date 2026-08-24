@@ -57,33 +57,44 @@ function amRequest(method, endpoint, params = {}, body = null) {
   });
 }
 
+// ApparelMagic's pagination is cursor-based on the record's own numeric id,
+// not page-number based -- confirmed live: `pagination[page_number]` and
+// `pagination[last_id]` are both silently ignored (or error outright), but
+// filtering `parameters[0][field]=<id field>&parameters[0][operator]=>&
+// parameters[0][value]=<last id seen>` correctly advances, and page_size is
+// only honored once that filter is present. First page has no filter; each
+// subsequent page filters on whatever id field the first page's rows carry.
+const ID_FIELD_CANDIDATES = ['product_id', 'sku_id', 'order_item_id', 'id'];
+
 async function fetchAllPages(endpoint, params, maxPages = 500) {
   const pageSize = 200;
   const rows = [];
-  for (let page = 1; page <= maxPages; page++) {
-    // ApparelMagic's page param is `pagination[page_number]`, not
-    // `pagination[page]` -- the latter is silently ignored, so every
-    // "page" comes back as page 1 again with no error to signal it.
-    const result = await amRequest('GET', endpoint, {
-      'pagination[page_size]': pageSize,
-      'pagination[page_number]': page,
-      ...params,
-    });
+  let afterId = null;
+  let idField = null;
+
+  for (let i = 0; i < maxPages; i++) {
+    const requestParams = { 'pagination[page_size]': pageSize, ...params };
+    if (idField != null && afterId != null) {
+      requestParams['parameters[0][field]'] = idField;
+      requestParams['parameters[0][operator]'] = '>';
+      requestParams['parameters[0][value]'] = afterId;
+    }
+
+    const result = await amRequest('GET', endpoint, requestParams);
     if (result.status !== 200) {
       throw new Error(`ApparelMagic ${endpoint} returned status ${result.status}: ${JSON.stringify(result.data)}`);
     }
     const batch = result.data?.response || [];
     rows.push(...batch);
+    if (!batch.length) break;
 
-    // Prefer the API's own total_pages when present -- more reliable than
-    // inferring "last page" from a short batch, and confirmed as the
-    // correct stop condition against this API elsewhere.
-    const totalPages = result.data?.meta?.pagination?.total_pages;
-    if (totalPages != null) {
-      if (page >= Number(totalPages)) break;
-    } else if (batch.length < pageSize) {
-      break;
+    if (idField == null) {
+      idField = ID_FIELD_CANDIDATES.find((f) => batch[0][f] !== undefined) || null;
+      if (idField == null) break; // no usable id field -- can't page further, this is all we get
     }
+
+    afterId = batch[batch.length - 1][idField];
+    if (batch.length < pageSize) break; // short page -- reached the end
   }
   return rows;
 }
