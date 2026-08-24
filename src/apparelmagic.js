@@ -161,4 +161,13 @@ async function getStyleCategories() {
   return map; // Map<style_code, category name>
 }
 
-module.exports = { configured, getStockByStyle, getSalesByStyle, getStyleCategories };
+// Exposed only for the /api/debug/am diagnostic route -- lets us see the
+// raw response shape (pagination meta, field names) from a live account
+// without guessing, since this API's pagination behavior wasn't documented
+// anywhere and none of the sibling apps had ever paginated a full endpoint.
+async function rawRequest(endpoint, params) {
+  const result = await amRequest('GET', endpoint, params);
+  return result;
+}
+
+module.exports = { configured, getStockByStyle, getSalesByStyle, getStyleCategories, rawRequest };

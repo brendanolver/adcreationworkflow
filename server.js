@@ -10,6 +10,7 @@ app.use('/api/mappings', require('./src/routes/mappings'));
 app.use('/api/promotions', require('./src/routes/promotions'));
 app.use('/api/styles', require('./src/routes/styles'));
 app.use('/api/dashboard', require('./src/routes/dashboard'));
+app.use('/api/debug', require('./src/routes/debug'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
