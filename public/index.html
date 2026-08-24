@@ -5,154 +5,236 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WNDRR Ads Dashboard</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
   :root {
     color-scheme: light;
-    --surface-1: #fcfcfb;
-    --page: #f9f9f7;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --muted: #898781;
-    --gridline: #e1e0d9;
-    --border: rgba(11,11,11,0.10);
-    --series-1: #2a78d6;
-    --good: #0ca30c;
-    --warning: #fab219;
-    --critical: #d03b3b;
-    --success-text: #006300;
+    --bg: #ffffff;
+    --surface-1: #f7f7f7;
+    --surface-2: #efefef;
+    --page: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #555555;
+    --muted: #888888;
+    --gridline: #e5e5e5;
+    --border: #e5e5e5;
+    --track: #e0e0e0;
+    --series-1: #111111;
+    --good: #1a9e6a;
+    --warning: #c97d00;
+    --critical: #d94040;
+    --success-text: #1a9e6a;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
+      --bg: #0d0d0d;
       --surface-1: #1a1a19;
+      --surface-2: #232322;
       --page: #0d0d0d;
       --text-primary: #ffffff;
       --text-secondary: #c3c2b7;
       --muted: #898781;
       --gridline: #2c2c2a;
-      --border: rgba(255,255,255,0.10);
-      --series-1: #3987e5;
-      --good: #0ca30c;
-      --warning: #fab219;
+      --border: #2c2c2a;
+      --track: #2c2c2a;
+      --series-1: #ffffff;
+      --good: #2fbd85;
+      --warning: #e0a13a;
       --critical: #e66767;
-      --success-text: #0ca30c;
+      --success-text: #2fbd85;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
+    --bg: #0d0d0d;
     --surface-1: #1a1a19;
+    --surface-2: #232322;
     --page: #0d0d0d;
     --text-primary: #ffffff;
     --text-secondary: #c3c2b7;
     --muted: #898781;
     --gridline: #2c2c2a;
-    --border: rgba(255,255,255,0.10);
-    --series-1: #3987e5;
-    --good: #0ca30c;
-    --warning: #fab219;
+    --border: #2c2c2a;
+    --track: #2c2c2a;
+    --series-1: #ffffff;
+    --good: #2fbd85;
+    --warning: #e0a13a;
     --critical: #e66767;
-    --success-text: #0ca30c;
+    --success-text: #2fbd85;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: 'DM Sans', system-ui, -apple-system, "Segoe UI", sans-serif;
     background: var(--page);
     color: var(--text-primary);
+    font-size: 14px;
   }
+  .mono { font-family: 'DM Mono', ui-monospace, monospace; }
   header {
-    padding: 20px 28px;
+    padding: 16px 28px;
     border-bottom: 1px solid var(--border);
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 24px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
-  header h1 { font-size: 17px; margin: 0; }
-  nav { display: flex; gap: 4px; }
+  .logo-area { display: flex; align-items: center; gap: 12px; }
+  .logo-box {
+    width: 32px; height: 32px; background: var(--text-primary); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: var(--bg); font-weight: 600; font-size: 13px;
+  }
+  header h1 { font-size: 14px; font-weight: 500; margin: 0; letter-spacing: 0.01em; }
+  header .header-sub {
+    font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px;
+  }
+  nav { display: flex; gap: 6px; margin-left: 8px; }
   nav button {
-    border: none;
-    background: transparent;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
     color: var(--text-secondary);
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 13.5px;
+    padding: 6px 13px;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     cursor: pointer;
+    transition: all 0.15s;
   }
-  nav button.active { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
-  main { padding: 24px 28px 60px; max-width: 1100px; margin: 0 auto; }
+  nav button:hover { border-color: var(--text-primary); color: var(--text-primary); }
+  nav button.active { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
+  main { padding: 24px 28px 60px; max-width: 1140px; margin: 0 auto; }
   .view { display: none; }
   .view.active { display: block; }
   .card {
-    background: var(--surface-1);
+    background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 18px 20px;
     margin-bottom: 18px;
   }
-  .stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-  .stat-tile { flex: 1; min-width: 150px; }
-  .stat-tile .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .stat-tile .value { font-size: 24px; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
-  td { padding: 10px; border-bottom: 1px solid var(--gridline); font-variant-numeric: tabular-nums; }
-  tr:last-child td { border-bottom: none; }
-  .bar-wrap { display: flex; align-items: center; gap: 8px; }
-  .bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--gridline); position: relative; min-width: 60px; }
-  .bar-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; background: var(--series-1); }
-  .bar-fill.stock { background: var(--muted); opacity: 0.55; }
-  .flag {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
-    background: rgba(208,59,59,0.12); color: var(--critical);
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
   }
+  .stat-tile .label {
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .stat-tile .value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--surface-1); }
+  th {
+    text-align: left; font-weight: 500; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 11px 14px; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--gridline); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-1); }
+  td.num, th.num { text-align: right; font-family: 'DM Mono', monospace; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-track { flex: 1; height: 7px; border-radius: 3px; background: var(--track); position: relative; min-width: 60px; overflow: hidden; }
+  .bar-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 3px; background: var(--text-primary); transition: width 0.4s ease; }
+  .bar-fill.stock { background: var(--muted); opacity: 0.55; }
+  .bar-fill.bad { background: var(--critical); }
+  .cat-name { font-weight: 600; letter-spacing: 0.01em; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .pill.bad { background: rgba(217,64,64,0.1); color: var(--critical); }
+  .pill.mid { background: rgba(201,125,0,0.1); color: var(--warning); }
+  .pill.good { background: rgba(26,158,106,0.1); color: var(--good); }
   .flag::before { content: "\26A0"; }
   .muted { color: var(--muted); }
   .warn-box {
-    background: rgba(250,178,25,0.12);
-    border: 1px solid rgba(250,178,25,0.35);
+    background: rgba(201,125,0,0.08);
+    border: 1px solid rgba(201,125,0,0.28);
     color: var(--text-primary);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 10px 14px;
     font-size: 13px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+  }
+  .warn-box.error {
+    background: rgba(217,64,64,0.06);
+    border-color: rgba(217,64,64,0.25);
+  }
+  .warn-box.success {
+    background: rgba(26,158,106,0.08);
+    border-color: rgba(26,158,106,0.28);
   }
   form.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
   form.inline .field { display: flex; flex-direction: column; gap: 4px; }
-  form.inline label { font-size: 11.5px; color: var(--muted); }
+  form.inline label {
+    font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+  }
   input, select {
-    font-family: inherit;
-    font-size: 13.5px;
-    padding: 7px 9px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
     border-radius: 7px;
     border: 1px solid var(--border);
-    background: var(--page);
+    background: var(--surface-1);
     color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
   }
+  input:focus, select:focus { border-color: var(--text-primary); }
+  input::placeholder { color: var(--muted); }
   button.primary {
-    background: var(--series-1);
-    color: white;
+    background: var(--text-primary);
+    color: var(--bg);
     border: none;
-    padding: 8px 14px;
-    border-radius: 7px;
-    font-size: 13.5px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    transition: opacity 0.2s;
   }
+  button.primary:hover { opacity: 0.82; }
   button.ghost {
-    background: transparent;
+    background: var(--surface-1);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    padding: 5px 9px;
+    padding: 5px 10px;
     border-radius: 6px;
-    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
     cursor: pointer;
+    transition: all 0.15s;
   }
+  button.ghost:hover { border-color: var(--text-primary); color: var(--text-primary); }
   h2 { font-size: 14px; margin: 0 0 12px; }
-  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+  .section-title { font-size: 13px; font-weight: 600; margin: 0 0 12px; letter-spacing: 0.01em; }
 </style>
 </head>
 <body>
 <header>
-  <h1>WNDRR Ads Dashboard</h1>
+  <div class="logo-area">
+    <div class="logo-box">W</div>
+    <div>
+      <h1>WNDRR Ads Dashboard</h1>
+      <div class="header-sub">Creative &amp; Spend</div>
+    </div>
+  </div>
   <nav>
     <button class="active" data-view="dashboard">Category Spend</button>
     <button data-view="mapping">Category Mapping</button>
@@ -178,12 +260,12 @@
     <div class="stat-row" id="stats"></div>
     <div class="card">
       <div class="section-title">Spend share vs. stock share vs. sales share, by category</div>
-      <table>
+      <div class="table-wrap"><table>
         <thead>
           <tr><th>Category</th><th>Spend</th><th>Spend share vs stock share</th><th>Sales share</th><th></th></tr>
         </thead>
         <tbody id="dashboard-rows"></tbody>
-      </table>
+      </table></div>
     </div>
   </section>
 
@@ -197,10 +279,10 @@
         </div>
         <button class="primary" type="submit">Add category</button>
       </form>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th>Name</th><th></th></tr></thead>
         <tbody id="category-rows"></tbody>
-      </table>
+      </table></div>
     </div>
     <div class="card">
       <div class="section-title">Style / Meta campaign / Meta ad set → Category</div>
@@ -236,10 +318,10 @@
         </div>
         <button class="primary" type="submit">Add mapping</button>
       </form>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th>Category</th><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead>
         <tbody id="mapping-rows"></tbody>
-      </table>
+      </table></div>
     </div>
   </section>
 
@@ -274,10 +356,10 @@
         </div>
         <button class="primary" type="submit">Add mapping</button>
       </form>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th>Product</th><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead>
         <tbody id="product-mapping-rows"></tbody>
-      </table>
+      </table></div>
     </div>
     <div class="card">
       <div class="section-title">Spend vs. stock, by product</div>
@@ -300,10 +382,10 @@
         <button class="primary" type="submit">Search</button>
       </form>
       <div id="ps-warnings"></div>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th>Product</th><th>Spend</th><th>Stock (units)</th><th></th></tr></thead>
         <tbody id="product-spend-rows"><tr><td colspan="4" class="muted">Type a product name above and search.</td></tr></tbody>
-      </table>
+      </table></div>
     </div>
   </section>
 
@@ -337,10 +419,10 @@
         </div>
         <button class="primary" type="submit">Add promotion</button>
       </form>
-      <table>
+      <div class="table-wrap"><table>
         <thead><tr><th>Promotion</th><th>Category</th><th>Style</th><th>Dates</th><th></th></tr></thead>
         <tbody id="promo-rows"></tbody>
-      </table>
+      </table></div>
     </div>
   </section>
 
@@ -381,7 +463,7 @@ async function loadDashboard() {
   try {
     data = await api('/api/dashboard?' + params.toString());
   } catch (err) {
-    $('#warnings').innerHTML = `<div class="warn-box">Couldn't load the dashboard: ${esc(err.message)}</div>`;
+    $('#warnings').innerHTML = `<div class="warn-box error">Couldn't load the dashboard: ${esc(err.message)}</div>`;
     $('#stats').innerHTML = '';
     $('#dashboard-rows').innerHTML = '';
     return;
@@ -393,7 +475,7 @@ async function loadDashboard() {
 
   const flaggedCount = data.categories.filter((c) => c.flagged).length;
   $('#stats').innerHTML = `
-    <div class="stat-tile"><div class="label">Date range</div><div class="value" style="font-size:16px;">${esc(data.range.start)} – ${esc(data.range.end)}</div></div>
+    <div class="stat-tile"><div class="label">Date range</div><div class="value mono" style="font-size:13px;white-space:nowrap;">${esc(data.range.start)} – ${esc(data.range.end)}</div></div>
     <div class="stat-tile"><div class="label">Flagged categories</div><div class="value" style="color:${flaggedCount ? 'var(--critical)' : 'inherit'}">${flaggedCount}</div></div>
     <div class="stat-tile"><div class="label">Unmapped spend</div><div class="value" style="font-size:18px;">${money(data.unmapped_spend)}</div></div>
     <div class="stat-tile"><div class="label">Auto-matched by ad name</div><div class="value" style="font-size:18px;">${money(data.auto_matched_by_name_spend)}</div></div>
@@ -402,20 +484,20 @@ async function loadDashboard() {
 
   $('#dashboard-rows').innerHTML = data.categories.map((c) => `
     <tr>
-      <td>${esc(c.category_name)}</td>
-      <td>${money(c.spend)}</td>
+      <td class="cat-name">${esc(c.category_name)}</td>
+      <td class="num">${money(c.spend)}</td>
       <td>
         <div class="bar-wrap">
-          <div style="width:56px;font-size:12px;" class="muted">${pct(c.spend_share)} spend</div>
+          <div style="width:56px;font-size:11px;" class="muted mono">${pct(c.spend_share)} spend</div>
           <div class="bar-track">
             <div class="bar-fill stock" style="width:${Math.min(100, c.stock_share * 100)}%"></div>
-            <div class="bar-fill" style="width:${Math.min(100, c.spend_share * 100)}%;opacity:0.9;height:4px;top:2px;"></div>
+            <div class="bar-fill ${c.flagged ? 'bad' : ''}" style="width:${Math.min(100, c.spend_share * 100)}%;opacity:0.9;height:4px;top:1.5px;"></div>
           </div>
-          <div style="width:56px;font-size:12px;" class="muted">${pct(c.stock_share)} stock</div>
+          <div style="width:56px;font-size:11px;" class="muted mono">${pct(c.stock_share)} stock</div>
         </div>
       </td>
-      <td>${pct(c.sales_share)}</td>
-      <td>${c.flagged ? '<span class="flag">Underspend vs stock</span>' : ''}</td>
+      <td class="num">${pct(c.sales_share)}</td>
+      <td>${c.flagged ? '<span class="pill bad flag">Underspend vs stock</span>' : '<span class="pill good">On par</span>'}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" class="muted">No categories yet — add one under Category Mapping.</td></tr>';
 }
@@ -479,12 +561,12 @@ $('#sync-am-btn').addEventListener('click', async () => {
   $('#sync-am-status').innerHTML = '';
   try {
     const result = await api('/api/mappings/sync-from-am', { method: 'POST' });
-    $('#sync-am-status').innerHTML = `<div class="warn-box" style="background:rgba(12,163,12,0.12);border-color:rgba(12,163,12,0.35);">Synced ${result.styles_synced} styles across ${result.categories_touched} categories from ApparelMagic.</div>`;
+    $('#sync-am-status').innerHTML = `<div class="warn-box success">Synced ${result.styles_synced} styles across ${result.categories_touched} categories from ApparelMagic.</div>`;
     await loadCategories();
     await loadMappings();
     await loadDashboard();
   } catch (err) {
-    $('#sync-am-status').innerHTML = `<div class="warn-box">Sync failed: ${esc(err.message)}</div>`;
+    $('#sync-am-status').innerHTML = `<div class="warn-box error">Sync failed: ${esc(err.message)}</div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Sync style categories from ApparelMagic';
@@ -565,7 +647,7 @@ async function searchProductSpendVsStock() {
   try {
     data = await api('/api/mappings/products/lookup?' + params.toString());
   } catch (err) {
-    $('#ps-warnings').innerHTML = `<div class="warn-box">${esc(err.message)}</div>`;
+    $('#ps-warnings').innerHTML = `<div class="warn-box error">${esc(err.message)}</div>`;
     $('#product-spend-rows').innerHTML = '';
     return;
   }
@@ -573,10 +655,10 @@ async function searchProductSpendVsStock() {
   $('#ps-warnings').innerHTML = data.warnings.map((w) => `<div class="warn-box">${esc(w)}</div>`).join('');
   $('#product-spend-rows').innerHTML = data.products.map((p) => `
     <tr>
-      <td>${esc(p.product_name)}</td>
-      <td>${p.spend === null ? '<span class="muted">—</span>' : money(p.spend)}</td>
-      <td>${p.stock_units === null ? '<span class="muted">—</span>' : p.stock_units.toLocaleString()}</td>
-      <td>${p.has_spend_mapping ? '' : '<span class="muted" style="font-size:12px;">no spend mapping yet</span>'}</td>
+      <td class="cat-name">${esc(p.product_name)}</td>
+      <td class="num">${p.spend === null ? '<span class="muted">—</span>' : money(p.spend)}</td>
+      <td class="num">${p.stock_units === null ? '<span class="muted">—</span>' : p.stock_units.toLocaleString()}</td>
+      <td>${p.has_spend_mapping ? '' : '<span class="muted mono" style="font-size:10.5px;">no spend mapping yet</span>'}</td>
     </tr>
   `).join('') || '<tr><td colspan="4" class="muted">No products match that search.</td></tr>';
 }
@@ -634,7 +716,7 @@ $('#promo-form').addEventListener('submit', async (e) => {
     ]);
   } catch (err) {
     console.error(err);
-    $('#warnings').innerHTML = `<div class="warn-box">Couldn't load the app: ${esc(err.message)}</div>`;
+    $('#warnings').innerHTML = `<div class="warn-box error">Couldn't load the app: ${esc(err.message)}</div>`;
   }
 })();
 </script>
