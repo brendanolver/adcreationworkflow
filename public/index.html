@@ -280,11 +280,14 @@
       </table>
     </div>
     <div class="card">
-      <div class="section-title">Spend by product</div>
-      <form class="inline" onsubmit="return false;">
+      <div class="section-title">Spend vs. stock, by product</div>
+      <p class="muted" style="font-size:12.5px;margin-top:-6px;">
+        Type a product name to see its spend next to its stock directly — no need to go via a category total.
+      </p>
+      <form class="inline" id="product-lookup-form">
         <div class="field">
-          <label for="ps-search">Search products</label>
-          <input type="text" id="ps-search" placeholder="e.g. trackpants" oninput="renderProductSpendRows()">
+          <label for="ps-search">Product name</label>
+          <input type="text" id="ps-search" placeholder="e.g. Halo Baggy Trackpant" list="product-name-options" autocomplete="off">
         </div>
         <div class="field">
           <label for="ps-start">From</label>
@@ -294,12 +297,12 @@
           <label for="ps-end">To</label>
           <input type="date" id="ps-end">
         </div>
-        <button class="primary" id="ps-reload">Refresh</button>
+        <button class="primary" type="submit">Search</button>
       </form>
       <div id="ps-warnings"></div>
       <table>
-        <thead><tr><th>Product</th><th>Spend</th></tr></thead>
-        <tbody id="product-spend-rows"></tbody>
+        <thead><tr><th>Product</th><th>Spend</th><th>Stock (units)</th><th></th></tr></thead>
+        <tbody id="product-spend-rows"><tr><td colspan="4" class="muted">Type a product name above and search.</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -546,32 +549,41 @@ $('#product-mapping-form').addEventListener('submit', async (e) => {
   await loadProductMappings();
 });
 
-let productSpendCache = [];
-
-async function loadProductSpend() {
-  const params = new URLSearchParams();
+async function searchProductSpendVsStock() {
+  const q = ($('#ps-search').value || '').trim();
+  if (!q) {
+    $('#product-spend-rows').innerHTML = '<tr><td colspan="4" class="muted">Type a product name above and search.</td></tr>';
+    $('#ps-warnings').innerHTML = '';
+    return;
+  }
+  const params = new URLSearchParams({ q });
   if ($('#ps-start').value) params.set('start', $('#ps-start').value);
   if ($('#ps-end').value) params.set('end', $('#ps-end').value);
+
+  let data;
   try {
-    const data = await api('/api/mappings/products/spend?' + params.toString());
-    productSpendCache = data.products;
-    $('#ps-warnings').innerHTML = '';
+    data = await api('/api/mappings/products/lookup?' + params.toString());
   } catch (err) {
-    productSpendCache = [];
     $('#ps-warnings').innerHTML = `<div class="warn-box">${esc(err.message)}</div>`;
+    $('#product-spend-rows').innerHTML = '';
+    return;
   }
-  renderProductSpendRows();
+
+  $('#ps-warnings').innerHTML = data.warnings.map((w) => `<div class="warn-box">${esc(w)}</div>`).join('');
+  $('#product-spend-rows').innerHTML = data.products.map((p) => `
+    <tr>
+      <td>${esc(p.product_name)}</td>
+      <td>${p.spend === null ? '<span class="muted">—</span>' : money(p.spend)}</td>
+      <td>${p.stock_units === null ? '<span class="muted">—</span>' : p.stock_units.toLocaleString()}</td>
+      <td>${p.has_spend_mapping ? '' : '<span class="muted" style="font-size:12px;">no spend mapping yet</span>'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="muted">No products match that search.</td></tr>';
 }
 
-function renderProductSpendRows() {
-  const q = ($('#ps-search').value || '').trim().toLowerCase();
-  const filtered = q ? productSpendCache.filter((p) => p.product_name.toLowerCase().includes(q)) : productSpendCache;
-  $('#product-spend-rows').innerHTML = filtered.map((p) => `
-    <tr><td>${esc(p.product_name)}</td><td>${money(p.spend)}</td></tr>
-  `).join('') || '<tr><td colspan="2" class="muted">No mapped products with spend in this range.</td></tr>';
-}
-
-$('#ps-reload').addEventListener('click', loadProductSpend);
+$('#product-lookup-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  searchProductSpendVsStock();
+});
 
 // ---------- Promotions ----------
 async function loadPromotions() {
@@ -618,7 +630,6 @@ $('#promo-form').addEventListener('submit', async (e) => {
       loadPromotions(),
       loadProductNameOptions(),
       loadProductMappings(),
-      loadProductSpend(),
     ]);
   } catch (err) {
     console.error(err);

@@ -120,20 +120,49 @@ router.delete('/products/mappings/:id', async (req, res) => {
   }
 });
 
-// Spend per product for the date range, using product_spend_mappings.
-router.get('/products/spend', async (req, res) => {
-  if (!meta.configured()) {
-    return res.status(400).json({ error: 'Meta Marketing API is not configured (set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID)' });
-  }
+// Search-driven spend-vs-stock lookup for a specific product (colours
+// summed together) -- e.g. type "Halo Baggy Trackpant" and see its spend
+// next to its stock, without going via a category total. Only runs against
+// a query rather than loading everything, since stock requires a live
+// ApparelMagic pull each time.
+router.get('/products/lookup', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ range: null, products: [], warnings: [] });
+
+  const warnings = [];
+  const end = req.query.end || new Date().toISOString().slice(0, 10);
+  const startDefault = new Date();
+  startDefault.setDate(startDefault.getDate() - 27);
+  const start = req.query.start || startDefault.toISOString().slice(0, 10);
+
   try {
-    const end = req.query.end || new Date().toISOString().slice(0, 10);
-    const startDefault = new Date();
-    startDefault.setDate(startDefault.getDate() - 27);
-    const start = req.query.start || startDefault.toISOString().slice(0, 10);
+    const { rows: styleRows } = await db.query(
+      `SELECT style_code, product_name FROM styles WHERE product_name ILIKE $1 ORDER BY product_name LIMIT 1000`,
+      [`%${q}%`]
+    );
+    const styleCodesByProduct = new Map();
+    for (const r of styleRows) {
+      if (!styleCodesByProduct.has(r.product_name)) styleCodesByProduct.set(r.product_name, []);
+      styleCodesByProduct.get(r.product_name).push(r.style_code);
+    }
+    const productNames = [...styleCodesByProduct.keys()].slice(0, 25);
+
+    let stockByStyle = new Map();
+    if (am.configured()) {
+      try {
+        stockByStyle = await am.getStockByStyle();
+      } catch (err) {
+        warnings.push(`ApparelMagic stock unavailable: ${err.message}`);
+      }
+    } else {
+      warnings.push('ApparelMagic is not configured (set AM_SUBDOMAIN and AM_TOKEN).');
+    }
 
     const { rows: mappingRows } = await db.query(
-      `SELECT product_name, entity_type, entity_id FROM product_spend_mappings`
+      `SELECT product_name, entity_type, entity_id FROM product_spend_mappings WHERE product_name = ANY($1)`,
+      [productNames]
     );
+    const mappedProductNames = new Set(mappingRows.map((m) => m.product_name));
     const adsetToProduct = new Map();
     const campaignToProduct = new Map();
     for (const m of mappingRows) {
@@ -141,19 +170,34 @@ router.get('/products/spend', async (req, res) => {
       else campaignToProduct.set(m.entity_id, m.product_name);
     }
 
-    const adsetRows = await meta.getSpendByAdSet(start, end);
-    const spendByProduct = new Map();
-    for (const row of adsetRows) {
-      const productName = adsetToProduct.get(row.adset_id) || campaignToProduct.get(row.campaign_id);
-      if (!productName) continue;
-      spendByProduct.set(productName, (spendByProduct.get(productName) || 0) + row.spend);
+    let spendByProduct = new Map();
+    if (meta.configured() && mappingRows.length) {
+      try {
+        const adsetRows = await meta.getSpendByAdSet(start, end);
+        for (const row of adsetRows) {
+          const productName = adsetToProduct.get(row.adset_id) || campaignToProduct.get(row.campaign_id);
+          if (!productName) continue;
+          spendByProduct.set(productName, (spendByProduct.get(productName) || 0) + row.spend);
+        }
+      } catch (err) {
+        warnings.push(`Meta spend unavailable: ${err.message}`);
+      }
+    } else if (!meta.configured()) {
+      warnings.push('Meta Marketing API is not configured (set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID).');
     }
 
-    const results = [...spendByProduct.entries()]
-      .map(([product_name, spend]) => ({ product_name, spend: Math.round(spend * 100) / 100 }))
-      .sort((a, b) => b.spend - a.spend);
+    const products = productNames.map((name) => {
+      const styleCodes = styleCodesByProduct.get(name) || [];
+      const stockUnits = styleCodes.reduce((sum, sc) => sum + (stockByStyle.get(sc) || 0), 0);
+      return {
+        product_name: name,
+        stock_units: am.configured() ? stockUnits : null,
+        spend: meta.configured() ? Math.round((spendByProduct.get(name) || 0) * 100) / 100 : null,
+        has_spend_mapping: mappedProductNames.has(name),
+      };
+    });
 
-    res.json({ range: { start, end }, products: results });
+    res.json({ range: { start, end }, products, warnings });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
