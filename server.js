@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const { runMigrations } = require('./src/migrate');
 
 const app = express();
 app.use(express.json());
@@ -18,6 +19,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3333;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`WNDRR Ads Dashboard running on http://localhost:${PORT}`);
-});
+
+// Run migrations on boot rather than relying on a separate deploy-time
+// command -- keeps the app self-contained regardless of how the platform
+// invokes the start command (nixpacks.toml's [start] override isn't always
+// honored, e.g. on Railway it fell back to `npm start`).
+runMigrations()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`WNDRR Ads Dashboard running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Migration failed, not starting server:', err);
+    process.exit(1);
+  });

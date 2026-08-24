@@ -1,2 +1,2 @@
 [start]
-cmd = "node src/migrate.js && node server.js"
+cmd = "node server.js"
