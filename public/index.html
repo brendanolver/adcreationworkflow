@@ -113,6 +113,52 @@
   main { padding: 24px 28px 60px; max-width: 1140px; margin: 0 auto; }
   .view { display: none; }
   .view.active { display: block; }
+  .section-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .section-bar-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; margin: 0; }
+  .section-bar-sub {
+    font-family: 'DM Mono', monospace; font-size: 9.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-top: 2px;
+  }
+  .section-bar form.inline { margin-bottom: 0; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ctrl-label {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); margin-right: 2px;
+  }
+  .sort-btn {
+    background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
+    font-family: 'DM Mono', monospace; font-size: 10px; padding: 5px 11px; border-radius: 6px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .sort-btn:hover { border-color: var(--text-primary); color: var(--text-primary); }
+  .sort-btn.active { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg); }
+  .search-box {
+    margin-left: auto; background: var(--surface-1); border: 1px solid var(--border); color: var(--text-primary);
+    font-family: 'DM Mono', monospace; font-size: 11px; padding: 6px 12px; border-radius: 6px;
+    outline: none; width: 200px; transition: border-color 0.15s;
+  }
+  .search-box:focus { border-color: var(--text-primary); }
+  .search-box::placeholder { color: var(--muted); }
+  .expand-cell { width: 30px; text-align: center; cursor: pointer; color: var(--muted); }
+  .chevron { display: inline-block; transition: transform 0.15s; font-size: 10px; }
+  .chevron.open { transform: rotate(90deg); }
+  tr.cat-row { cursor: pointer; }
+  tr.ad-sub-row { display: none; background: var(--surface-1); }
+  tr.ad-sub-row.open { display: table-row; }
+  tr.ad-sub-row td { padding: 0; border-bottom: 1px solid var(--gridline); }
+  .ad-sub-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ad-sub-table th {
+    font-size: 8.5px; padding: 8px 14px 8px 44px; background: var(--surface-2);
+    font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+  .ad-sub-table td { padding: 8px 14px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--gridline); }
+  .ad-sub-table td:first-child { padding-left: 44px; }
+  .ad-sub-table tbody tr:last-child td { border-bottom: none; }
+  .ad-sub-table .source-tag {
+    font-size: 8.5px; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px;
+    background: var(--surface-2); color: var(--muted); text-transform: uppercase;
+  }
   .card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -245,28 +291,50 @@
 <main>
 
   <section id="view-dashboard" class="view active">
-    <form class="inline" onsubmit="return false;">
-      <div class="field">
-        <label for="start">From</label>
-        <input type="date" id="start">
+    <div class="section-bar">
+      <div>
+        <div class="section-bar-title">Category Overview</div>
+        <div class="section-bar-sub">Meta spend vs SOH &amp; sales</div>
       </div>
-      <div class="field">
-        <label for="end">To</label>
-        <input type="date" id="end">
-      </div>
-      <button class="primary" id="reload">Refresh</button>
-    </form>
+      <form class="inline" onsubmit="return false;">
+        <div class="field">
+          <label for="start">From</label>
+          <input type="date" id="start">
+        </div>
+        <div class="field">
+          <label for="end">To</label>
+          <input type="date" id="end">
+        </div>
+        <button class="primary" id="reload">Refresh</button>
+      </form>
+    </div>
     <div id="warnings"></div>
     <div class="stat-row" id="stats"></div>
-    <div class="card">
-      <div class="section-title">Spend share vs. stock share vs. sales share, by category</div>
-      <div class="table-wrap"><table>
-        <thead>
-          <tr><th>Category</th><th>Spend</th><th>Spend share vs stock share</th><th>Sales share</th><th></th></tr>
-        </thead>
-        <tbody id="dashboard-rows"></tbody>
-      </table></div>
+
+    <div class="controls">
+      <span class="ctrl-label">Sort by</span>
+      <button class="sort-btn active" data-sort="spend">Spend</button>
+      <button class="sort-btn" data-sort="stock">Stock</button>
+      <button class="sort-btn" data-sort="sold">Sold</button>
+      <button class="sort-btn" data-sort="ratio">Spend / Stock</button>
+      <input type="text" id="cat-search" class="search-box" placeholder="Search category...">
     </div>
+
+    <div class="table-wrap"><table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Category</th>
+          <th class="num">Ads</th>
+          <th class="num">Spend</th>
+          <th>Spend / Stock</th>
+          <th class="num">Stock (SOH)</th>
+          <th class="num">Sold</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="dashboard-rows"></tbody>
+    </table></div>
   </section>
 
   <section id="view-mapping" class="view">
@@ -443,6 +511,11 @@ document.querySelectorAll('nav button').forEach((btn) => {
 function pct(x) { return x === null || x === undefined ? '—' : (x * 100).toFixed(1) + '%'; }
 function money(x) { return '$' + Number(x).toLocaleString(undefined, { maximumFractionDigits: 0 }); }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function shortDate(iso) {
+  const [y, m, d] = (iso || '').split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return m ? `${Number(d)} ${months[Number(m) - 1]}` : (iso || '');
+}
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
@@ -454,6 +527,10 @@ async function api(path, opts) {
 }
 
 // ---------- Dashboard ----------
+let dashboardCategories = [];
+let dashboardSort = 'spend';
+const openCategoryIds = new Set();
+
 async function loadDashboard() {
   const params = new URLSearchParams();
   if ($('#start').value) params.set('start', $('#start').value);
@@ -466,6 +543,7 @@ async function loadDashboard() {
     $('#warnings').innerHTML = `<div class="warn-box error">Couldn't load the dashboard: ${esc(err.message)}</div>`;
     $('#stats').innerHTML = '';
     $('#dashboard-rows').innerHTML = '';
+    dashboardCategories = [];
     return;
   }
 
@@ -475,16 +553,49 @@ async function loadDashboard() {
 
   const flaggedCount = data.categories.filter((c) => c.flagged).length;
   $('#stats').innerHTML = `
-    <div class="stat-tile"><div class="label">Date range</div><div class="value mono" style="font-size:13px;white-space:nowrap;">${esc(data.range.start)} – ${esc(data.range.end)}</div></div>
+    <div class="stat-tile"><div class="label">Date range</div><div class="value mono" style="font-size:12px;white-space:nowrap;">${shortDate(data.range.start)} – ${shortDate(data.range.end)}</div></div>
+    <div class="stat-tile"><div class="label">Total spend</div><div class="value" style="font-size:18px;">${money(data.totals.spend)}</div></div>
+    <div class="stat-tile"><div class="label">Total stock (SOH)</div><div class="value" style="font-size:18px;">${data.totals.stock_units.toLocaleString()}</div></div>
+    <div class="stat-tile"><div class="label">Total sold</div><div class="value" style="font-size:18px;">${data.totals.sales_units === null ? '—' : data.totals.sales_units.toLocaleString()}</div></div>
     <div class="stat-tile"><div class="label">Flagged categories</div><div class="value" style="color:${flaggedCount ? 'var(--critical)' : 'inherit'}">${flaggedCount}</div></div>
     <div class="stat-tile"><div class="label">Unmapped spend</div><div class="value" style="font-size:18px;">${money(data.unmapped_spend)}</div></div>
-    <div class="stat-tile"><div class="label">Auto-matched by ad name</div><div class="value" style="font-size:18px;">${money(data.auto_matched_by_name_spend)}</div></div>
-    <div class="stat-tile"><div class="label">Unmapped stock styles</div><div class="value" style="font-size:18px;">${data.unmapped_stock_styles}</div></div>
   `;
 
-  $('#dashboard-rows').innerHTML = data.categories.map((c) => `
-    <tr>
+  dashboardCategories = data.categories;
+  renderDashboardRows();
+}
+
+function sortCategories(rows) {
+  const sorted = [...rows];
+  if (dashboardSort === 'spend') sorted.sort((a, b) => b.spend - a.spend);
+  else if (dashboardSort === 'stock') sorted.sort((a, b) => b.stock_units - a.stock_units);
+  else if (dashboardSort === 'sold') sorted.sort((a, b) => (b.sales_units ?? -1) - (a.sales_units ?? -1));
+  else if (dashboardSort === 'ratio') sorted.sort((a, b) => (b.stock_share - b.spend_share) - (a.stock_share - a.spend_share));
+  return sorted;
+}
+
+function renderDashboardRows() {
+  const q = ($('#cat-search').value || '').trim().toLowerCase();
+  const filtered = dashboardCategories.filter((c) => !q || c.category_name.toLowerCase().includes(q));
+  const rows = sortCategories(filtered);
+
+  $('#dashboard-rows').innerHTML = rows.map((c) => {
+    const open = openCategoryIds.has(String(c.category_id));
+    const adsRows = c.ads.length
+      ? c.ads.map((ad) => `
+          <tr>
+            <td>${esc(ad.ad_name || '(unnamed ad)')}</td>
+            <td><span class="source-tag">${ad.source === 'manual' ? 'Manual mapping' : 'Auto by name'}</span></td>
+            <td style="text-align:right;">${money(ad.spend)}</td>
+          </tr>
+        `).join('')
+      : `<tr><td colspan="3" class="muted" style="padding-left:44px;">No spend attributed to this category in range.</td></tr>`;
+
+    return `
+    <tr class="cat-row" data-cat-id="${c.category_id}">
+      <td class="expand-cell"><span class="chevron ${open ? 'open' : ''}">▶</span></td>
       <td class="cat-name">${esc(c.category_name)}</td>
+      <td class="num">${c.ad_count}</td>
       <td class="num">${money(c.spend)}</td>
       <td>
         <div class="bar-wrap">
@@ -496,13 +607,36 @@ async function loadDashboard() {
           <div style="width:56px;font-size:11px;" class="muted mono">${pct(c.stock_share)} stock</div>
         </div>
       </td>
-      <td class="num">${pct(c.sales_share)}</td>
+      <td class="num">${c.stock_units.toLocaleString()}</td>
+      <td class="num">${c.sales_units === null ? '—' : c.sales_units.toLocaleString()}</td>
       <td>${c.flagged ? '<span class="pill bad flag">Underspend vs stock</span>' : '<span class="pill good">On par</span>'}</td>
     </tr>
-  `).join('') || '<tr><td colspan="5" class="muted">No categories yet — add one under Category Mapping.</td></tr>';
+    <tr class="ad-sub-row ${open ? 'open' : ''}" data-cat-sub="${c.category_id}">
+      <td colspan="8">
+        <table class="ad-sub-table">
+          <thead><tr><th>Ad name</th><th>Source</th><th style="text-align:right;">Spend</th></tr></thead>
+          <tbody>${adsRows}</tbody>
+        </table>
+      </td>
+    </tr>
+  `;
+  }).join('') || '<tr><td colspan="8" class="muted">No categories match.</td></tr>';
+
+  $$('.cat-row').forEach((row) => row.addEventListener('click', () => {
+    const id = row.dataset.catId;
+    if (openCategoryIds.has(id)) openCategoryIds.delete(id); else openCategoryIds.add(id);
+    renderDashboardRows();
+  }));
 }
 
 $('#reload').addEventListener('click', loadDashboard);
+$('#cat-search').addEventListener('input', renderDashboardRows);
+$$('.controls .sort-btn').forEach((btn) => btn.addEventListener('click', () => {
+  dashboardSort = btn.dataset.sort;
+  $$('.controls .sort-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboardRows();
+}));
 
 // ---------- Category mapping ----------
 let categoriesCache = [];
