@@ -7,20 +7,32 @@ full context; this README covers what's implemented and how to run it.
 ## Status
 
 **Implemented (Phase 1 + prerequisites):**
-- Category mapping admin (style / Meta campaign / Meta ad set → category).
-  This is the single source of truth for grouping — categories are never
-  inferred from campaign or ad set names. Style → category can be synced
+- Category mapping admin (style / Meta campaign / Meta ad set → category),
+  the manual source of truth for grouping. Style → category can be synced
   live from ApparelMagic's own `products.category` field (button on the
   Category Mapping tab, `POST /api/mappings/sync-from-am`) — that's a real
   structured field ApparelMagic maintains per style (same field the
   `demandplanning` app's V2 branch already treats as authoritative), not
-  name-parsing. Meta campaign/ad set → category has no live source and stays
-  manual.
+  name-parsing.
 - Category spend dashboard: Meta spend share vs. ApparelMagic stock share vs.
   ApparelMagic sales share, by category, with an underspend flag (spend share
   below stock share). Sales share is always shown alongside a flag so a
   low-spend/high-stock category can be checked against whether it's actually
   selling before assuming it needs more budget.
+  **Spend attribution order per ad:** (1) a manual mapping on its ad set or
+  campaign, if one exists, always wins; (2) otherwise, `src/routes/
+  dashboard.js: deriveCategoryFromAdName` looks for a category name as its
+  own underscore-delimited token in the individual *ad's* name (e.g.
+  `..._SWEATS_...`) — WNDRR's naming convention reliably encodes category at
+  the ad level, confirmed against real examples, but not at the ad
+  set/campaign level. This only ever matches against the app's own known
+  category list (never a free-text guess), so an ad whose name doesn't
+  contain a recognized category token falls through to "unmapped spend"
+  rather than being attributed wrong. The dashboard reports both
+  `unmapped_spend` and `auto_matched_by_name_spend` so it's visible how much
+  of the total came from which path. This is a deliberate exception to "never
+  derive category from Meta naming" — made because this account's naming is
+  consistent enough at the ad level to trust, unlike ad set/campaign names.
 - Promotions calendar: a minimal manual entry point so "what's promoting this
   week" isn't left to memory.
 - Style Spend tab: product-level spend lookup, one level below category. Map

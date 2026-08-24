@@ -43,13 +43,33 @@ async function handleDashboard(req, res) {
   }
 
   // --- Spend (Meta) ---
+  // Attribution order per ad: (1) an explicit manual mapping on its ad set
+  // or campaign always wins; (2) otherwise, look for a category name as its
+  // own underscore-delimited token in the ad's name (e.g. "..._SWEATS_...")
+  // -- matched only against the known category vocabulary already in the
+  // app, never a free-text guess, so a non-match just falls through to
+  // unmapped rather than being attributed wrong. Category isn't reliably
+  // encoded at the ad set/campaign level in this account, only per-ad.
+  const { rows: categoryNameRows } = await db.query('SELECT id, name FROM categories');
+  const categoryByName = new Map(
+    categoryNameRows.map((c) => [c.name.toUpperCase(), { category_id: c.id, category_name: c.name }])
+  );
+
   const spendByCategory = new Map(); // category_id -> spend
   let unmappedSpend = 0;
+  let autoMatchedByName = 0;
   if (meta.configured()) {
     try {
-      const adsetRows = await meta.getSpendByAdSet(start, end);
-      for (const row of adsetRows) {
-        const mapping = adsetToCategory.get(row.adset_id) || campaignToCategory.get(row.campaign_id);
+      const adRows = await meta.getSpendByAd(start, end);
+      for (const row of adRows) {
+        let mapping = adsetToCategory.get(row.adset_id) || campaignToCategory.get(row.campaign_id);
+        if (!mapping) {
+          const derived = deriveCategoryFromAdName(row.ad_name, categoryByName);
+          if (derived) {
+            mapping = derived;
+            autoMatchedByName += row.spend;
+          }
+        }
         if (!mapping) {
           unmappedSpend += row.spend;
           continue;
@@ -134,10 +154,24 @@ async function handleDashboard(req, res) {
     range: { start, end },
     categories: categoryRows,
     unmapped_spend: round(unmappedSpend),
+    auto_matched_by_name_spend: round(autoMatchedByName),
     unmapped_stock_styles: unmappedStockStyles,
     sales_available: salesAvailable,
     warnings,
   });
+}
+
+// Only matches against the known category vocabulary already in the app
+// (never free-text) -- an ad name that doesn't contain one of these exact
+// segments falls through to unmapped rather than being guessed at.
+function deriveCategoryFromAdName(adName, categoryByName) {
+  if (!adName) return null;
+  const tokens = adName.split('_').map((t) => t.trim().toUpperCase()).filter(Boolean);
+  for (const token of tokens) {
+    const match = categoryByName.get(token);
+    if (match) return match;
+  }
+  return null;
 }
 
 function pickDates(query) {
