@@ -207,6 +207,11 @@
         Category is never inferred from campaign or ad set names — every spend/stock/sales number on the
         dashboard depends on this table being kept current.
       </p>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <button class="primary" id="sync-am-btn" type="button">Sync style categories from ApparelMagic</button>
+        <span class="muted" style="font-size:12.5px;">Pulls each style's category straight from ApparelMagic. Meta campaign/ad set mappings still need to be added by hand below.</span>
+      </div>
+      <div id="sync-am-status"></div>
       <form class="inline" id="mapping-form">
         <div class="field">
           <label for="map-category">Category</label>
@@ -399,6 +404,25 @@ $('#category-form').addEventListener('submit', async (e) => {
   });
   $('#cat-name').value = '';
   await loadCategories();
+});
+
+$('#sync-am-btn').addEventListener('click', async () => {
+  const btn = $('#sync-am-btn');
+  btn.disabled = true;
+  btn.textContent = 'Syncing…';
+  $('#sync-am-status').innerHTML = '';
+  try {
+    const result = await api('/api/mappings/sync-from-am', { method: 'POST' });
+    $('#sync-am-status').innerHTML = `<div class="warn-box" style="background:rgba(12,163,12,0.12);border-color:rgba(12,163,12,0.35);">Synced ${result.styles_synced} styles across ${result.categories_touched} categories from ApparelMagic.</div>`;
+    await loadCategories();
+    await loadMappings();
+    await loadDashboard();
+  } catch (err) {
+    $('#sync-am-status').innerHTML = `<div class="warn-box">Sync failed: ${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sync style categories from ApparelMagic';
+  }
 });
 
 $('#mapping-form').addEventListener('submit', async (e) => {

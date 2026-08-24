@@ -9,7 +9,13 @@ full context; this README covers what's implemented and how to run it.
 **Implemented (Phase 1 + prerequisites):**
 - Category mapping admin (style / Meta campaign / Meta ad set → category).
   This is the single source of truth for grouping — categories are never
-  inferred from campaign or ad set names.
+  inferred from campaign or ad set names. Style → category can be synced
+  live from ApparelMagic's own `products.category` field (button on the
+  Category Mapping tab, `POST /api/mappings/sync-from-am`) — that's a real
+  structured field ApparelMagic maintains per style (same field the
+  `demandplanning` app's V2 branch already treats as authoritative), not
+  name-parsing. Meta campaign/ad set → category has no live source and stays
+  manual.
 - Category spend dashboard: Meta spend share vs. ApparelMagic stock share vs.
   ApparelMagic sales share, by category, with an underspend flag (spend share
   below stock share). Sales share is always shown alongside a flag so a
