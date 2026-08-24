@@ -18,6 +18,14 @@ function defaultDateRange() {
 // always returned alongside so a flagged category can be checked against
 // whether it's actually selling before assuming it needs more budget.
 router.get('/', async (req, res) => {
+  try {
+    await handleDashboard(req, res);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function handleDashboard(req, res) {
   const { start, end } = { ...defaultDateRange(), ...pickDates(req.query) };
 
   const warnings = [];
@@ -130,7 +138,7 @@ router.get('/', async (req, res) => {
     sales_available: salesAvailable,
     warnings,
   });
-});
+}
 
 function pickDates(query) {
   const out = {};

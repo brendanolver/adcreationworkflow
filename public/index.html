@@ -306,7 +306,16 @@ async function loadDashboard() {
   const params = new URLSearchParams();
   if ($('#start').value) params.set('start', $('#start').value);
   if ($('#end').value) params.set('end', $('#end').value);
-  const data = await api('/api/dashboard?' + params.toString());
+
+  let data;
+  try {
+    data = await api('/api/dashboard?' + params.toString());
+  } catch (err) {
+    $('#warnings').innerHTML = `<div class="warn-box">Couldn't load the dashboard: ${esc(err.message)}</div>`;
+    $('#stats').innerHTML = '';
+    $('#dashboard-rows').innerHTML = '';
+    return;
+  }
 
   $('#warnings').innerHTML = data.warnings.length
     ? data.warnings.map((w) => `<div class="warn-box">${esc(w)}</div>`).join('')
@@ -446,8 +455,13 @@ $('#promo-form').addEventListener('submit', async (e) => {
 });
 
 (async function init() {
-  await loadCategories();
-  await Promise.all([loadDashboard(), loadMappings(), loadPromotions()]);
+  try {
+    await loadCategories();
+    await Promise.all([loadDashboard(), loadMappings(), loadPromotions()]);
+  } catch (err) {
+    console.error(err);
+    $('#warnings').innerHTML = `<div class="warn-box">Couldn't load the app: ${esc(err.message)}</div>`;
+  }
 })();
 </script>
 </body>
