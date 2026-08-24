@@ -159,6 +159,13 @@
     font-size: 8.5px; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px;
     background: var(--surface-2); color: var(--muted); text-transform: uppercase;
   }
+  .ad-sub-table .copy-count {
+    font-size: 9px; color: var(--muted); background: var(--surface-2);
+    padding: 1px 6px; border-radius: 3px; margin-left: 6px; font-weight: 400;
+  }
+  .ad-bar-cell { width: 100px; padding-right: 14px !important; }
+  .ad-bar-track { background: var(--track); border-radius: 3px; height: 6px; overflow: hidden; }
+  .ad-bar-fill { height: 100%; border-radius: 3px; background: var(--text-primary); }
   .card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -574,6 +581,22 @@ function sortCategories(rows) {
   return sorted;
 }
 
+// Collapses ad creative copies ("Ad Name - Copy 2", "Ad Name – Copy") into
+// one row summing their spend, same base-name convention the earlier ads
+// analysis tool used for this account's naming.
+function groupAdsByBaseName(ads) {
+  const groups = new Map();
+  for (const ad of ads) {
+    const base = (ad.ad_name || '').replace(/\s*[–-]\s*Copy(\s+\d+)?\s*$/i, '').trim() || ad.ad_name || '(unnamed ad)';
+    if (!groups.has(base)) groups.set(base, { ad_name: base, spend: 0, count: 0, source: ad.source });
+    const g = groups.get(base);
+    g.spend += ad.spend;
+    g.count += 1;
+    if (ad.source === 'manual') g.source = 'manual';
+  }
+  return [...groups.values()].sort((a, b) => b.spend - a.spend);
+}
+
 function renderDashboardRows() {
   const q = ($('#cat-search').value || '').trim().toLowerCase();
   const filtered = dashboardCategories.filter((c) => !q || c.category_name.toLowerCase().includes(q));
@@ -581,15 +604,23 @@ function renderDashboardRows() {
 
   $('#dashboard-rows').innerHTML = rows.map((c) => {
     const open = openCategoryIds.has(String(c.category_id));
-    const adsRows = c.ads.length
-      ? c.ads.map((ad) => `
+    const grouped = groupAdsByBaseName(c.ads);
+    const maxAdSpend = Math.max(1, ...grouped.map((g) => g.spend));
+    const adsRows = grouped.length
+      ? grouped.map((ad) => `
           <tr>
-            <td>${esc(ad.ad_name || '(unnamed ad)')}</td>
+            <td>
+              ${esc(ad.ad_name || '(unnamed ad)')}
+              ${ad.count > 1 ? `<span class="copy-count">${ad.count} copies</span>` : ''}
+            </td>
             <td><span class="source-tag">${ad.source === 'manual' ? 'Manual mapping' : 'Auto by name'}</span></td>
             <td style="text-align:right;">${money(ad.spend)}</td>
+            <td class="ad-bar-cell">
+              <div class="ad-bar-track"><div class="ad-bar-fill" style="width:${Math.max(3, (ad.spend / maxAdSpend) * 100)}%"></div></div>
+            </td>
           </tr>
         `).join('')
-      : `<tr><td colspan="3" class="muted" style="padding-left:44px;">No spend attributed to this category in range.</td></tr>`;
+      : `<tr><td colspan="4" class="muted" style="padding-left:44px;">No spend attributed to this category in range.</td></tr>`;
 
     return `
     <tr class="cat-row" data-cat-id="${c.category_id}">
@@ -614,7 +645,7 @@ function renderDashboardRows() {
     <tr class="ad-sub-row ${open ? 'open' : ''}" data-cat-sub="${c.category_id}">
       <td colspan="8">
         <table class="ad-sub-table">
-          <thead><tr><th>Ad name</th><th>Source</th><th style="text-align:right;">Spend</th></tr></thead>
+          <thead><tr><th>Ad name</th><th>Source</th><th style="text-align:right;">Spend</th><th></th></tr></thead>
           <tbody>${adsRows}</tbody>
         </table>
       </td>
