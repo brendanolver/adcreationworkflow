@@ -396,6 +396,7 @@ async function loadDashboard() {
     <div class="stat-tile"><div class="label">Date range</div><div class="value" style="font-size:16px;">${esc(data.range.start)} – ${esc(data.range.end)}</div></div>
     <div class="stat-tile"><div class="label">Flagged categories</div><div class="value" style="color:${flaggedCount ? 'var(--critical)' : 'inherit'}">${flaggedCount}</div></div>
     <div class="stat-tile"><div class="label">Unmapped spend</div><div class="value" style="font-size:18px;">${money(data.unmapped_spend)}</div></div>
+    <div class="stat-tile"><div class="label">Auto-matched by ad name</div><div class="value" style="font-size:18px;">${money(data.auto_matched_by_name_spend)}</div></div>
     <div class="stat-tile"><div class="label">Unmapped stock styles</div><div class="value" style="font-size:18px;">${data.unmapped_stock_styles}</div></div>
   `;
 

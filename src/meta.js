@@ -70,4 +70,33 @@ async function getSpendByAdSet(startDate, endDate) {
   }));
 }
 
-module.exports = { configured, getSpendByAdSet };
+// Spend for the given date range, broken out per individual ad (plus its
+// parent ad set/campaign). Needed because category isn't reliably encoded
+// at the ad set/campaign level in this account -- it's a token in the
+// individual ad's name (e.g. "..._SWEATS_..."), so attribution by name has
+// to happen at the ad level.
+async function getSpendByAd(startDate, endDate) {
+  const fields = 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend';
+  const timeRange = encodeURIComponent(JSON.stringify({ since: startDate, until: endDate }));
+
+  const rows = [];
+  let page = await get(`${AD_ACCOUNT_ID}/insights?level=ad&fields=${fields}&time_range=${timeRange}&limit=500`);
+  rows.push(...(page.data || []));
+
+  while (page.paging && page.paging.next) {
+    page = await fetchUrl(page.paging.next);
+    rows.push(...(page.data || []));
+  }
+
+  return rows.map((r) => ({
+    ad_id: r.ad_id,
+    ad_name: r.ad_name,
+    campaign_id: r.campaign_id,
+    campaign_name: r.campaign_name,
+    adset_id: r.adset_id,
+    adset_name: r.adset_name,
+    spend: parseFloat(r.spend) || 0,
+  }));
+}
+
+module.exports = { configured, getSpendByAdSet, getSpendByAd };
